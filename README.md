@@ -145,15 +145,3 @@ Following the paper's evaluation protocol:
 - **WP / WR / WF1**: Weighted Precision, Recall, and F1-score across the four C-SSRS suicide risk levels.
 
 Risk level labels: `Indicator (0)` · `Ideation (1)` · `Behavior (2)` · `Attempt (3)`.
-
----
-
-## Citation
-
-If you use this code or the PFA dataset, please cite:
-
-```
-Jun Li, Xiangmeng Wang, Haoyang Li, Yifei Yan, Hong Va Leong, Ling Feng,
-Nancy Xiaonan Yu, and Qing Li. 2026. Embracing Resilience: Balancing Risk
-Factor and Protective Factor in Dynamic Suicide Risk Prediction. In ACM KDD 2026.
-```
