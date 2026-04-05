@@ -1,4 +1,4 @@
-Dataset of the paper:"..."
+Dataset of the paper:"Embracing Resilience: Balancing Risk Factor and Protective Factor in Dynamic Suicide Risk Prediction"
 
 To receive access, you will need to read, sign, and send back the attached data usage agreement (DUA).
 
