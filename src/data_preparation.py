@@ -20,14 +20,14 @@ RISK_MAPPING = {
     'attempt': 3
 }
 
-RISK_COLUMNS = [
+DEFAULT_RISK_COLUMNS = [
     "hopelessness",
     "prior self-harm or suicidal thought/attempt",
     "poor social support",
     "suicide means (with access)"
 ]
 
-RESILIENCE_COLUMNS = [
+DEFAULT_RESILIENCE_COLUMNS = [
     "coping strategy",
     "psychological capital",
     "sense of responsibility",
@@ -35,7 +35,7 @@ RESILIENCE_COLUMNS = [
 ]
 
 
-def create_timeline(group, window_size):
+def create_timeline(group, window_size, risk_columns, resilience_columns):
     """Build sliding-window timeline records for a single user group."""
     if len(group) < window_size + 1:
         return pd.DataFrame()
@@ -45,11 +45,11 @@ def create_timeline(group, window_size):
         window = group.iloc[i:i + window_size + 1]
         posts = window['post'].iloc[:window_size].tolist()
         risk_factors = [
-            np.clip(np.array(window.iloc[j][RISK_COLUMNS]), None, 1)
+            np.clip(np.array(window.iloc[j][risk_columns]), None, 1)
             for j in range(window_size)
         ]
         resilience_factors = [
-            np.clip(np.array(window.iloc[j][RESILIENCE_COLUMNS]), None, 1)
+            np.clip(np.array(window.iloc[j][resilience_columns]), None, 1)
             for j in range(window_size)
         ]
         timestamps = window['created_utc'].iloc[:window_size].tolist()
@@ -88,7 +88,18 @@ def main():
     parser.add_argument("--output", type=str, required=True, help="Path to output .pkl file")
     parser.add_argument("--model", type=str, default="sentence-transformers/nli-roberta-large",
                         help="Sentence transformer model name")
+    parser.add_argument(
+        "--risk_cols", nargs="+", default=None,
+        help="Risk factor column names (pool for RF selection). Defaults to the 4 standard columns."
+    )
+    parser.add_argument(
+        "--resilience_cols", nargs="+", default=None,
+        help="Protective factor column names (pool for RF selection). Defaults to the 4 standard columns."
+    )
     args = parser.parse_args()
+
+    risk_columns = args.risk_cols if args.risk_cols else DEFAULT_RISK_COLUMNS
+    resilience_columns = args.resilience_cols if args.resilience_cols else DEFAULT_RESILIENCE_COLUMNS
 
     df = pd.read_excel(args.input, index_col=0)
 
@@ -100,7 +111,7 @@ def main():
     df = df.sort_values(['users', 'created_utc'])
 
     result = df.groupby('users').apply(
-        lambda g: create_timeline(g, args.window)
+        lambda g: create_timeline(g, args.window, risk_columns, resilience_columns)
     ).reset_index(drop=True)
 
     if result.empty:
@@ -119,8 +130,15 @@ def main():
     post_embedding = generate_embeddings(result['sb_post'].tolist(), sv_model)
     result['sb_1024'] = post_embedding
 
+    # Store factor column names as metadata for traceability.
+    # RF feature selection (within each CV fold) will select n_top from this pool.
+    result.attrs['risk_columns'] = risk_columns
+    result.attrs['resilience_columns'] = resilience_columns
+
     result.to_pickle(args.output)
     print(f"Saved {len(result)} records to {args.output}")
+    print(f"Risk factor pool ({len(risk_columns)}): {risk_columns}")
+    print(f"Protective factor pool ({len(resilience_columns)}): {resilience_columns}")
 
 
 if __name__ == "__main__":

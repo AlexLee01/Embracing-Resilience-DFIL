@@ -13,6 +13,7 @@ from transformers import AdamW
 
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold, train_test_split
 
+from src.feature_selection import select_factors_rf, apply_factor_selection
 from utils.loss import loss_function
 from utils.data_loader import RedditDataset, pad_collate_reddit
 from utils.evaluation import *
@@ -343,6 +344,23 @@ class TempATT(LightningModule):
             seed=split_seed,
             val_ratio=val_ratio,
         )
+
+        # Within-fold RF feature selection.
+        # Fit exclusively on training data; apply the learned indices to val/test.
+        # This prevents any information leakage from held-out splits.
+        if self.config.get('rf_feature_selection', True):
+            n_risk = self.config.get('b_y_num', 4)
+            n_protective = self.config.get('res_y_num', 4)
+            seed = self.config.get('random_seed', 42)
+            risk_idx, protective_idx = select_factors_rf(
+                self.df_train, self.s_y_col, n_risk, n_protective, seed
+            )
+            self.df_train = apply_factor_selection(self.df_train, risk_idx, protective_idx)
+            if not self.df_val.empty:
+                self.df_val = apply_factor_selection(self.df_val, risk_idx, protective_idx)
+            self.df_test = apply_factor_selection(self.df_test, risk_idx, protective_idx)
+            self.selected_risk_indices = risk_idx
+            self.selected_protective_indices = protective_idx
 
     def train_dataloader(self):
         self.train_data = RedditDataset(

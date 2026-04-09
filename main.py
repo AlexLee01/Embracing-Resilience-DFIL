@@ -112,6 +112,14 @@ if __name__ == '__main__':
     parser.add_argument("--lambda_pf", type=float, default=0.4, help="weight for protective factor loss")
     parser.add_argument("--lambda_rf", type=float, default=0.1, help="weight for risk factor loss")
     parser.add_argument("--input", type=str, default=None, help="path to input dataset pkl")
+    parser.add_argument(
+        "--rf_feature_selection", action="store_true", default=True,
+        help="perform RF feature selection strictly within each training fold"
+    )
+    parser.add_argument(
+        "--no_rf_feature_selection", dest="rf_feature_selection", action="store_false",
+        help="disable within-fold RF feature selection"
+    )
 
     config = parser.parse_args()
     args = Arg()
