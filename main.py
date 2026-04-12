@@ -45,7 +45,7 @@ def main(args, config):
     random_seed = config.get('random_seed', split_seed)
     seed_everything(random_seed)
     th_seed_everything(random_seed)
-    config['res_y_num'] = 4
+    config['rf_y_num'] = 4
 
     model = TempATT(args, config)
     model.preprocess_dataframe()
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     parser.add_argument("--save", type=str, default="test")
     parser.add_argument("--s_y_num", type=int, default=4)
     parser.add_argument("--b_y_num", type=int, default=4)
-    parser.add_argument("--res_y_num", type=int, default=4, help="number of resilience factor classes")
+    parser.add_argument("--rf_y_num", type=int, default=4, help="number of risk factor classes")
     parser.add_argument("--n_fold", type=int, default=1)
     parser.add_argument("--val_ratio", type=float, default=0.125)
     parser.add_argument("--early_stop_patience", type=int, default=10)

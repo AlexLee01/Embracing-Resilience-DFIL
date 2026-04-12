@@ -115,13 +115,13 @@ class TempATT(LightningModule):
         )
         self.b_decoder = nn.Linear(self.config['hidden_dim'], self.config['b_y_num'])
 
-        self.res_factor_encoder = nn.Sequential(
+        self.rf_factor_encoder = nn.Sequential(
             nn.Linear(self.config['hidden_dim'], self.config['hidden_dim']),
             nn.ReLU(),
             nn.Linear(self.config['hidden_dim'], self.config['hidden_dim']),
             nn.ReLU()
         )
-        self.res_decoder = nn.Linear(self.config['hidden_dim'], self.config['res_y_num'])
+        self.rf_decoder = nn.Linear(self.config['hidden_dim'], self.config['rf_y_num'])
 
         # Loss weights
         self.lambda_sr = float(self.config.get('lambda_sr', 1.0))
@@ -131,7 +131,7 @@ class TempATT(LightningModule):
         self.lambda_te = float(self.config.get('lambda_te', 0.1))
         self.gamma_te = float(self.config.get('gamma_te', 1.0))
 
-    def forward(self, cur_su_y, s_y, b_y, res_y, p_num, tweets, time_interval, raw_timestamps, mode='train'):
+    def forward(self, cur_su_y, s_y, b_y, rf_y, p_num, tweets, time_interval, raw_timestamps, mode='train'):
         x = self.dropout(tweets)
 
         # Protective factor encoder (auxiliary task)
@@ -142,11 +142,11 @@ class TempATT(LightningModule):
         b_loss = nn.MultiLabelSoftMarginLoss(weight=None, reduction='mean')(logits_b, b_y)
 
         # Risk factor encoder (auxiliary task)
-        res_encoded = self.res_factor_encoder(x)
-        res_out = self.res_decoder(res_encoded)
-        logits_res = nn.utils.rnn.pack_padded_sequence(res_out, p_num.cpu(), batch_first=True, enforce_sorted=False)[0]
-        res_y = nn.utils.rnn.pack_padded_sequence(res_y, p_num.cpu(), batch_first=True, enforce_sorted=False)[0]
-        res_loss = nn.MultiLabelSoftMarginLoss(weight=None, reduction='mean')(logits_res, res_y)
+        rf_encoded = self.rf_factor_encoder(x)
+        rf_out = self.rf_decoder(rf_encoded)
+        logits_rf = nn.utils.rnn.pack_padded_sequence(rf_out, p_num.cpu(), batch_first=True, enforce_sorted=False)[0]
+        rf_y = nn.utils.rnn.pack_padded_sequence(rf_y, p_num.cpu(), batch_first=True, enforce_sorted=False)[0]
+        rf_loss = nn.MultiLabelSoftMarginLoss(weight=None, reduction='mean')(logits_rf, rf_y)
 
         # Temporal LSTM encoding
         x = nn.utils.rnn.pack_padded_sequence(x, p_num.cpu(), batch_first=True, enforce_sorted=False)
@@ -164,7 +164,7 @@ class TempATT(LightningModule):
 
         # Aggregate protective and risk factor representations
         e_plus, alpha_plus, sim_plus = self.aggregate_factors(h, b_encoded, p_num, self.tau)
-        e_minus, alpha_minus, sim_minus = self.aggregate_factors(h, res_encoded, p_num, self.tau)
+        e_minus, alpha_minus, sim_minus = self.aggregate_factors(h, rf_encoded, p_num, self.tau)
 
         # Four prediction heads
         logits_base = self.suicide_base(self.dropout(h))
@@ -176,7 +176,7 @@ class TempATT(LightningModule):
         s_loss_raw = loss_function(logits_both, s_y, self.config['loss'], self.config['s_y_num'], 1.8)
         s_loss = self.lambda_sr * s_loss_raw
         b_loss = self.lambda_pf * b_loss
-        res_loss = self.lambda_rf * res_loss
+        rf_loss = self.lambda_rf * rf_loss
 
         # Transfer Effect (TE) loss: information gain from factor-conditioned predictions
         eps = 1e-8
@@ -195,20 +195,20 @@ class TempATT(LightningModule):
         te_r = torch.log(p_minus + eps) - torch.log(p_base + eps)
         te_loss = self.lambda_te * (-(te_p + te_r).mean())
 
-        total_loss = s_loss + b_loss + res_loss + te_loss
+        total_loss = s_loss + b_loss + rf_loss + te_loss
 
         if mode == 'test':
             similarities = self.compute_similarities(
-                h, b_encoded, res_encoded, p_num, raw_timestamps,
+                h, b_encoded, rf_encoded, p_num, raw_timestamps,
                 alpha_plus, alpha_minus, sim_plus, sim_minus,
                 p_base, p_plus, p_minus, p_both, te_p, te_r
             )
-            return total_loss, b_loss, res_loss, logits_both, logits_res, time_interval_for_attention, att_score, b_y, logits_b, res_y, te_loss, s_loss_raw, similarities
+            return total_loss, b_loss, rf_loss, logits_both, logits_rf, time_interval_for_attention, att_score, b_y, logits_b, rf_y, te_loss, s_loss_raw, similarities
         else:
-            return total_loss, b_loss, res_loss, logits_both, logits_res, time_interval_for_attention, att_score, b_y, logits_b, res_y, te_loss, s_loss_raw
+            return total_loss, b_loss, rf_loss, logits_both, logits_rf, time_interval_for_attention, att_score, b_y, logits_b, rf_y, te_loss, s_loss_raw
 
     def compute_similarities(
-        self, user_repr, b_factors, res_factors, p_num, raw_timestamps,
+        self, user_repr, b_factors, rf_factors, p_num, raw_timestamps,
         alpha_plus, alpha_minus, sim_plus, sim_minus,
         p_base, p_plus, p_minus, p_both, te_p, te_r
     ):
@@ -349,8 +349,8 @@ class TempATT(LightningModule):
         # Fit exclusively on training data; apply the learned indices to val/test.
         # This prevents any information leakage from held-out splits.
         if self.config.get('rf_feature_selection', True):
-            n_risk = self.config.get('b_y_num', 4)
-            n_protective = self.config.get('res_y_num', 4)
+            n_risk = self.config.get('rf_y_num', 4)
+            n_protective = self.config.get('b_y_num', 4)
             seed = self.config.get('random_seed', 42)
             risk_idx, protective_idx = select_factors_rf(
                 self.df_train, self.s_y_col, n_risk, n_protective, seed
@@ -417,26 +417,26 @@ class TempATT(LightningModule):
         )
 
     def training_step(self, batch, batch_idx):
-        s_y, cur_su_y, b_y, res_y, p_num, tweets, time_interval, raw_timestamps, user_id = batch
-        loss, b_loss, res_loss, logit_s, logit_res, time_interval, att_score, b_true, b_pred, res_y, te_loss, s_loss_raw = self(
-            cur_su_y, s_y, b_y, res_y, p_num, tweets, time_interval, raw_timestamps=None, mode='train'
+        s_y, cur_su_y, b_y, rf_y, p_num, tweets, time_interval, raw_timestamps, user_id = batch
+        loss, b_loss, rf_loss, logit_s, logit_rf, time_interval, att_score, b_true, b_pred, rf_y, te_loss, s_loss_raw = self(
+            cur_su_y, s_y, b_y, rf_y, p_num, tweets, time_interval, raw_timestamps=None, mode='train'
         )
         self.log("train_loss", loss)
         self.log("train_s_loss_raw", s_loss_raw)
         return {'loss': loss}
 
     def validation_step(self, batch, batch_idx):
-        s_y, cur_su_y, b_y, res_y, p_num, tweets, time_interval, raw_timestamps, user_id = batch
-        loss, b_loss, res_loss, logit_s, logit_res, time_interval, att_score, b_true, b_pred, res_y, te_loss, s_loss_raw = self(
-            cur_su_y, s_y, b_y, res_y, p_num, tweets, time_interval, raw_timestamps=None, mode='train'
+        s_y, cur_su_y, b_y, rf_y, p_num, tweets, time_interval, raw_timestamps, user_id = batch
+        loss, b_loss, rf_loss, logit_s, logit_rf, time_interval, att_score, b_true, b_pred, rf_y, te_loss, s_loss_raw = self(
+            cur_su_y, s_y, b_y, rf_y, p_num, tweets, time_interval, raw_timestamps=None, mode='train'
         )
         self.log("val_loss", s_loss_raw, prog_bar=True)
         return {'val_loss': s_loss_raw}
 
     def test_step(self, batch, batch_idx):
-        s_y, cur_su_y, b_y, res_y, p_num, tweets, time_interval, raw_timestamps, user_id = batch
-        loss, b_loss, res_loss, logit_s, logit_res, time_interval, att_score, b_true, b_pred, res_y, te_loss, s_loss_raw, similarities = self(
-            cur_su_y, s_y, b_y, res_y, p_num, tweets, time_interval, raw_timestamps, mode='test'
+        s_y, cur_su_y, b_y, rf_y, p_num, tweets, time_interval, raw_timestamps, user_id = batch
+        loss, b_loss, rf_loss, logit_s, logit_rf, time_interval, att_score, b_true, b_pred, rf_y, te_loss, s_loss_raw, similarities = self(
+            cur_su_y, s_y, b_y, rf_y, p_num, tweets, time_interval, raw_timestamps, mode='test'
         )
 
         temporal_att_weights = att_score.detach().cpu().numpy()
@@ -455,10 +455,10 @@ class TempATT(LightningModule):
         b_preds = np.array(b_pred.cpu() > 0.14).astype(int)
         b_preds = list(b_preds)
 
-        res_true = list(res_y.cpu().numpy())
-        res_pred = F.softmax(logit_res, dim=1)
-        res_preds = np.array(res_pred.cpu() > 0.14).astype(int)
-        res_preds = list(res_preds)
+        rf_true = list(rf_y.cpu().numpy())
+        rf_pred = F.softmax(logit_rf, dim=1)
+        rf_preds = np.array(rf_pred.cpu() > 0.14).astype(int)
+        rf_preds = list(rf_preds)
 
         user_id = list(user_id.cpu().numpy())
 
@@ -468,8 +468,8 @@ class TempATT(LightningModule):
             's_preds': s_preds,
             'b_true': b_true,
             'b_preds': b_preds,
-            'res_true': res_true,
-            'res_preds': res_preds,
+            'rf_true': rf_true,
+            'rf_preds': rf_preds,
             'user_id': user_id,
             'similarities': similarities
         }
@@ -480,7 +480,7 @@ class TempATT(LightningModule):
             self.log("test_loss", avg_loss, prog_bar=True)
         evaluation(self.config, outputs, 'fs', 's_true', 's_preds', 'user_id')
         evaluation(self.config, outputs, 'bd', 'b_true', 'b_preds', 'user_id')
-        evaluation(self.config, outputs, 'res', 'res_true', 'res_preds', 'user_id')
+        evaluation(self.config, outputs, 'rf', 'rf_true', 'rf_preds', 'user_id')
         if outputs:
             s_true = np.asanyarray([v for o in outputs for v in o['s_true']])
             s_preds = np.asanyarray([v for o in outputs for v in o['s_preds']])
