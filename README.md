@@ -8,7 +8,7 @@ DFIL is a multi-task learning framework that jointly models **protective factors
 
 ## Dataset Access
 
-Dataset: **PFA (Protective Factor-Aware Dataset)** — collected from 6,943 users on the r/SuicideWatch subreddit (June 2010 – September 2022), with expert annotations of risk factors, protective factors, and temporally-aware suicide risk levels following the Columbia Suicide Severity Rating Scale (C-SSRS).
+Dataset: **PFA (Protective Factor-Aware Dataset)** — constructed from posts collected from 6,943 users on the r/SuicideWatch subreddit (June 2010 – September 2022). Following the filtering and annotation procedure described in the paper, the final expert-annotated dataset contains 237 users and 2,515 posts, with labels for risk factors, protective factors, and temporally-aware suicide risk levels following the Columbia Suicide Severity Rating Scale (C-SSRS).
 
 To receive access, you will need to read, sign, and send back the attached data usage agreement (DUA).
 
@@ -41,7 +41,7 @@ Existing suicide risk prediction methods predominantly focus on risk factors whi
 |----------|--------|
 | Suicide Risk Levels (C-SSRS) | Indicator · Ideation · Behavior · Attempt |
 | Protective Factors | Coping Strategy · Psychological Capital · Sense of Responsibility · Meaning in Life · Social Support |
-| Risk Factors | Suicide Means · Prior Self-Harm/Suicidal Thought/Attempt · Hopelessness · Traumatic Experience · Physical Health Characteristic |
+| Risk Factors | Suicide Means · Prior Self-Harm or Suicidal Thought/Attempt · Hopelessness · Traumatic Experience · Physical Health/Characteristic ... |
 
 ---
 
