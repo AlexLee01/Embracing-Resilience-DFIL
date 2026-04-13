@@ -28,7 +28,7 @@ Once the Primary Investigator has signed the DUA, the Primary Investigator shoul
 
 Existing suicide risk prediction methods predominantly focus on risk factors while overlooking suicide resilience provided by protective factors. Moreover, they largely adopt static paradigms that fail to capture the inherently dynamic nature of suicide risk. DFIL addresses both limitations through:
 
-- **Post Embedding**: each post p_t in a user's dynamic post sequence is encoded via Sentence-BERT (SBERT) to capture semantic and psychological state information.
+- **Post Embedding**: each post \(p_t\) in a user's dynamic post sequence is encoded via Sentence-BERT (SBERT) to capture semantic and psychological state information.
 - **Sequential Post Modeling**: a BiLSTM captures long-term sequential dependencies across the user's post history.
 - **Temporal Attention**: a temporal decay mechanism assigns higher weights to posts that most significantly indicate evolving suicide risk patterns based on inter-post time intervals.
 - **Risk and Protective Factors Learning**: two separate factor encoders (non-shared parameters) produce post-level risk factor embeddings **e⁻** and protective factor embeddings **e⁺**, supervised by multi-label auxiliary losses L_rf and L_pf.
