@@ -31,9 +31,9 @@ Existing suicide risk prediction methods predominantly focus on risk factors whi
 - **Post Embedding**: each post $p_t$ in a user's dynamic post sequence is encoded via Sentence-BERT (SBERT) to capture semantic and psychological state information.
 - **Sequential Post Modeling**: a BiLSTM captures long-term sequential dependencies across the user's post history.
 - **Temporal Attention**: a temporal decay mechanism assigns higher weights to posts that most significantly indicate evolving suicide risk patterns based on inter-post time intervals.
-- **Risk and Protective Factors Learning**: two separate factor encoders (non-shared parameters) produce post-level risk factor embeddings **e⁻** and protective factor embeddings **e⁺**, supervised by multi-label auxiliary losses L_rf and L_pf.
-- **Dynamic Factors Influence Learning**: factor summaries **ẽ⁺** / **ẽ⁻** are obtained via alignment-based weighted pooling (temperature τ) and used to compute the Conditional Transfer Effect (CTE) — a counterfactual masking objective that quantifies the incremental predictive benefit of each factor type on subsequent suicide risk.
-- **Multi-task Decoder**: the final prediction integrates the temporal user representation **u** with both factor summaries, optimized jointly via ordinal regression loss L_sr, auxiliary factor losses L_pf / L_rf, and the CTE loss L_CTE.
+- **Risk and Protective Factors Learning**: two separate factor encoders (non-shared parameters) produce post-level risk factor embeddings **e⁻** and protective factor embeddings **e⁺**, supervised by multi-label auxiliary losses $L_{rf}$ and $L_{pf}$.
+- **Dynamic Factors Influence Learning**: factor summaries **ẽ⁺** / **ẽ⁻** are obtained via alignment-based weighted pooling (temperature $\tau$) and used to compute the Conditional Transfer Effect (CTE) — a counterfactual masking objective that quantifies the incremental predictive benefit of each factor type on subsequent suicide risk.
+- **Multi-task Decoder**: the final prediction integrates the temporal user representation **u** with both factor summaries, optimized jointly via ordinal regression loss $L_{sr}$, auxiliary factor losses $L_{pf}$ / $L_{rf}$, and the CTE loss $L_{CTE}$.
 
 **Annotation taxonomy:**
 
