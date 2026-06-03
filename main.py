@@ -58,8 +58,9 @@ def main(args, config):
     )
     save_root = config.get('save', 'checkpoints')
     fold_suffix = f"fold{config.get('n_fold', 0)}"
+    fold_dir = os.path.join(save_root, fold_suffix)
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(save_root, fold_suffix),
+        dirpath=fold_dir,
         filename="{epoch}-{val_loss:.4f}",
         monitor="val_loss",
         mode="min",
@@ -79,7 +80,21 @@ def main(args, config):
         precision=16 if args.fp16 else 32
     )
     trainer.fit(model)
-    test_results = trainer.test(model, dataloaders=model.test_dataloader())
+    os.makedirs(fold_dir, exist_ok=True)
+
+    best_ckpt = checkpoint_callback.best_model_path
+    if not best_ckpt or not os.path.isfile(best_ckpt):
+        raise FileNotFoundError(
+            f"No best validation checkpoint found under {fold_dir}. "
+            "Check that validation ran and val_loss was logged."
+        )
+    print(f"Best validation checkpoint (val_loss): {best_ckpt}")
+
+    test_results = trainer.test(
+        model,
+        dataloaders=model.test_dataloader(),
+        ckpt_path=best_ckpt,
+    )
     return test_results
 
 
