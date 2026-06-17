@@ -1,6 +1,12 @@
 # Embracing Resilience: Balancing Risk Factor and Protective Factor in Dynamic Suicide Risk Prediction
 
-This repository contains the official implementation of **DFIL** (Dynamic Factor Influence Learning), proposed in the paper *"Embracing Resilience: Balancing Risk Factor and Protective Factor in Dynamic Suicide Risk Prediction"*, which is currently under review.
+> [!IMPORTANT]
+> **Notice on Dataset Access During the IEEE BigData Challenge Cup**  
+> We are currently hosting an IEEE BigData Challenge Cup based on this project. Please refer to the official competition website for details: https://www.bigdatacompetition.cn/
+>
+> During the competition period, the dataset will be made available only to registered competition participants via the official competition registration process. To ensure fairness and consistency, we will not provide separate dataset access through this repository until the competition has ended.
+
+This repository contains the official implementation of DFIL (Dynamic Factor Influence Learning), proposed in the paper "Embracing Resilience: Balancing Risk Factor and Protective Factor in Dynamic Suicide Risk Prediction", which is currently under review.
 
 DFIL is a multi-task learning framework that jointly models **protective factors** (suicide resilience) and **risk factors** from users' social media post sequences, and captures their dynamic influence on subsequent suicide risk transitions via **Conditional Transfer Effect (CTE)**.
 
